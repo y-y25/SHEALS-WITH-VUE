@@ -8,6 +8,7 @@ import AddDealStore from "../views/AddDealStore.vue"
 import DealListStore from "../views/DealListStore.vue"
 import UpdateDeal from "../views/UpdateDeal.vue"
 import Cart from "../views/Cart.vue"
+import DealRedeem from "../views/DealRedeem.vue"
 
 
 const routes = [
@@ -59,6 +60,10 @@ const routes = [
         path: 'updatedeal/:id',
         name:'UpdateDeal',
         component: UpdateDeal,
+      },{
+        path: 'dealredeem',
+        name:'DealRedeem',
+        component: DealRedeem,
       }
     ]
 
