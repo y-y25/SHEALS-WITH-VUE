@@ -168,10 +168,6 @@ export default {
                 }
             })
 
-            console.log(this.display_list)
-            console.log(this.cart_list)
-
-
             this.cart_arr.forEach((item)=>{
                 //identify right deal in cart to increment qty
                 if(item.pdt === dealid){
@@ -188,10 +184,13 @@ export default {
         qrGenerate(){
             //open up the modal
             this.qrModal = true
-
+            var selectedCart = []
+            //cart_arr is all cart from user cart field
+            selectedCart = this.cart_arr.filter((element)=>{
+                return (element.storename == this.$refs.storeChosen.value)
+            })
             //assign items in cart to qrValue
-            this.qrValue = JSON.stringify(this.cart_arr) + `+${localStorage.getItem("userID")}`
-            console.log(this.qrValue)
+            this.qrValue = JSON.stringify(selectedCart) + `+${localStorage.getItem("userID")}`
         }
     }
 }
