@@ -39,9 +39,8 @@
   
 <script>
 //import router from '../router/index.js';  // Import router instance
-import { storage, db } from '../firebase/index.js'
+import { db } from '../firebase/index.js'
 import { collection, getDocs } from "firebase/firestore"
-import { ref, getDownloadURL } from "firebase/storage"
 
 export default {
     props: {
