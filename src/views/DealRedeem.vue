@@ -16,7 +16,7 @@
       </div>
       <div class="modal-body">
         <ul>
-            <li v-for="item in redeemItems" :key="item.pdt">{{ item.pdtname }} x {{ item.qty }}</li>
+            <li v-for="item in redeemItems" :key="item.pdt">{{ item.errmsg }}: {{ item.pdtname }} x {{ item.qty }}</li>
         </ul>
       </div>
     </div>
@@ -45,25 +45,47 @@ export default {
             let userId = resArr[1]
             let cartArr = JSON.parse(resArr[0])
 
+            //check if redeem store is correct
+            const storeRef = doc(db, "users", localStorage.getItem("userID"))
+            let store_name = (await getDoc(storeRef)).data().storename
+            if (store_name != cartArr[0].storename){
+                this.redeemItems = [{errmsg:"Incorrect store", pdtname:"None", qty:0}]
+                this.resultmodal = true
+                return
+            }
+
             //get user reference
             const userRef = doc(db, "users", userId)
 
             //get deal list and update
             for (const element of cartArr) {
-                let dealDoc = doc(db, "deals", element.pdt);
+                let dealDoc = doc(db, "deals", element.pdt)
+                var errmsg = "Success"//push success if no error
+                const docSnap = await getDoc(dealDoc)
 
-                // Remove from user cart
-                await updateDoc(userRef, {
-                    cart: arrayRemove(element),
-                });
+                let deal_rec = docSnap.data()
+                //check if quantiy exceeds avail amt
+                if (element.qty > deal_rec.deal_quantity){
+                    errmsg = "Quantity redeemed exceeds available"
+                }
+                if (errmsg === "Success"){
+                    // Remove from user cart
+                    await updateDoc(userRef, {
+                        cart: arrayRemove(element),
+                    })
+                    // if redeem and available the same, deal no longer exist
+                    if(element.qty === deal_rec.deal_quantity){
+                        await deleteDoc(doc(db, "deals", element.pdt));
+                    } else {
+                        // Update deal qty
+                        await updateDoc(dealDoc, {
+                        deal_quantity: increment(-element.qty),
+                        })
+                    }
+                }
 
-                let deal_rec = (await getDoc(dealDoc)).data();
                 element["pdtname"] = deal_rec.product_name;
-
-                // Update deal qty
-                await updateDoc(dealDoc, {
-                    deal_quantity: increment(-element.qty),
-                });
+                element["errmsg"] = errmsg
             }
 
             this.redeemItems = cartArr
@@ -90,4 +112,5 @@ export default {
     height: 100vh; /* Optionally, set a fixed or relative height for the container */
 }
     
+
 </style>
