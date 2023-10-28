@@ -106,6 +106,17 @@ export default {
             const userDoc = (await getDoc(userRef)).data() //retrieve fields
             this.cart_arr = userDoc.cart
 
+            //remove cart deals which no longer exist
+            this.cart_arr = this.cart_arr.filter(async(item)=>{
+                let dealdoc = doc(db, "deals", item.pdt)
+                let docsnap = await getDoc(dealdoc)
+                if(!docsnap.exists()){
+                    await updateDoc(userRef,{
+                        cart: arrayRemove(item)     
+                    })
+                }
+            })
+
             //packing pdt id in the list to use as condition later
             for (var item of this.cart_arr){
                 //populate store list for drop down selection
@@ -131,27 +142,30 @@ export default {
             this.display_list = this.cart_list.filter((item) => {
                 return item.store == this.store_list[0]
             })
+            // console.log(this.cart_list)
+            // console.log(this.display_list)
+
 
         },
         filterByStore(){
             this.display_list = this.cart_list.filter((item) => {
                 return item.store == this.$refs.storeChosen.value
             })
+
         },
         async deleteCartItem(id){
             //fetch all cart items, localstorage used over vue store due to loading of store
             const userRef = doc(db,"users",localStorage.getItem("userID"))
 
-            //update in display_list without refreshing
+            //update in car_list since it is permanent deletion instead of filtering
             this.cart_list = this.cart_list.filter((item) => {
                 return item.id != id
             })
 
-            this.display_list = this.cart_list
-            console.log(this.display_list)
-            console.log(this.cart_list)
+            // run function filterstore to get updated display_list
+            this.filterByStore()
 
-            //arrow functions to remove cart items and update in firebase
+            //arrow functions to remove cart_arr items (identical copy in db) and update in firebase
             this.cart_arr = this.cart_arr.filter((item)=>!(item.pdt == id))
 
             await updateDoc(userRef,{cart:this.cart_arr})
@@ -160,20 +174,24 @@ export default {
         },
 
         async changeQty(operation,dealid){
-            //update the display_list and cart_list
-            this.cart_list.forEach((item)=>{
-                //identify right deal in cart to increment qty
-                if(item.id == dealid){
-                    item.cart_qty = eval(item.cart_qty + operation + 1)
-                }
-            })
 
-            this.cart_arr.forEach((item)=>{
-                //identify right deal in cart to increment qty
-                if(item.pdt === dealid){
-                    item.qty = eval(item.qty + operation + 1)
+            for(var item of this.cart_list){
+                if (item.id === dealid){
+                    item.cart_qty = eval(item.cart_qty + operation + 1)
+                    if(item.cart_qty === 0){
+                        this.deleteCartItem(item.id)
+                    }
                 }
-            })
+            }
+
+            for(var deal of this.cart_arr){
+                if (deal.pdt === dealid){
+                    deal.qty = eval(deal.qty + operation + 1)
+                    if(deal.qty === 0){
+                        this.cart_arr.pop(deal)
+                    }
+                }
+            }
 
             const userRef = doc(db, "users", localStorage.getItem("userID"))
             await updateDoc(userRef,{
